@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:55438/notification_db}
+    username: ${SPRING_DATASOURCE_USERNAME:mascotacare}
+    password: ${SPRING_DATASOURCE_PASSWORD:mascotacare_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# Credenciales externas (vacío = modo MOCK que graba en log)
+notification:
+  fcm:
+    key: ${FCM_KEY:}
+  email:
+    api-key: ${SENDGRID_API_KEY:}
+  twilio:
+    sid: ${TWILIO_SID:}

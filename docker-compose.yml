@@ -1,0 +1,245 @@
+name: mascotacare
+
+x-spring-base: &spring-base
+  restart: unless-stopped
+  networks: [mc-net]
+  env_file: [.env]
+  environment:
+    EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+    SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+
+x-postgres-base: &postgres-base
+  image: postgres:16-alpine
+  restart: unless-stopped
+  networks: [mc-net]
+  environment:
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  healthcheck:
+    test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+    interval: 10s
+    timeout: 4s
+    retries: 8
+
+services:
+  # ─────────────── Bases de datos (1 por microservicio del doc §4.4) ───────────────
+  pet-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: pet_db
+    volumes: [pet-data:/var/lib/postgresql/data]
+    ports: ["55433:5432"]
+
+  symptom-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: symptom_db
+    volumes: [symptom-data:/var/lib/postgresql/data]
+    ports: ["55434:5432"]
+
+  rules-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: rules_db
+    volumes: [rules-data:/var/lib/postgresql/data]
+    ports: ["55435:5432"]
+
+  guide-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: guide_db
+    volumes: [guide-data:/var/lib/postgresql/data]
+    ports: ["55436:5432"]
+
+  followup-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: followup_db
+    volumes: [followup-data:/var/lib/postgresql/data]
+    ports: ["55437:5432"]
+
+  notification-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: notification_db
+    volumes: [notification-data:/var/lib/postgresql/data]
+    ports: ["55438:5432"]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [mc-net]
+    volumes: [redis-data:/data]
+    ports: ["6381:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─────────────── Service Discovery ───────────────
+  eureka-server:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: eureka-server } }
+    container_name: mc-eureka
+    ports: ["8761:8080"]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 4s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────── API Gateway ───────────────
+  api-gateway:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: api-gateway } }
+    container_name: mc-gateway
+    ports: ["8080:8080"]
+    depends_on:
+      eureka-server: { condition: service_healthy }
+
+  # ─────────────── Microservicios de negocio ───────────────
+  pet-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: pet-service } }
+    container_name: mc-pet
+    ports: ["8081:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://pet-db:5432/pet_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      pet-db: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  symptom-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: symptom-service } }
+    container_name: mc-symptom
+    ports: ["8082:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://symptom-db:5432/symptom_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      symptom-db: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  rules-engine:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: rules-engine } }
+    container_name: mc-rules
+    ports: ["8083:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://rules-db:5432/rules_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      rules-db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  guide-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: guide-service } }
+    container_name: mc-guide
+    ports: ["8084:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://guide-db:5432/guide_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      guide-db: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  followup-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: followup-service } }
+    container_name: mc-followup
+    ports: ["8085:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://followup-db:5432/followup_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      followup-db: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  metrics-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: metrics-service } }
+    container_name: mc-metrics
+    ports: ["8086:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      redis: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  notification-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: notification-service } }
+    container_name: mc-notification
+    ports: ["8087:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notification_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      notification-db: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
+  # ─────────────── Herramientas opcionales (perfil tools) ───────────────
+  pgadmin:
+    profiles: [tools]
+    image: dpage/pgadmin4:latest
+    restart: unless-stopped
+    networks: [mc-net]
+    ports: ["5050:80"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@mascotacare.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes: [pgadmin-data:/var/lib/pgadmin]
+
+networks:
+  mc-net:
+    driver: bridge
+
+volumes:
+  pet-data:
+  symptom-data:
+  rules-data:
+  guide-data:
+  followup-data:
+  notification-data:
+  redis-data:
+  pgadmin-data:
