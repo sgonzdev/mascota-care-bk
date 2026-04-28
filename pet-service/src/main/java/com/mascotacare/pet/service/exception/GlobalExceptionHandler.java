@@ -1,4 +1,4 @@
-package com.mascotacare.pet.service.controller;
+package com.mascotacare.pet.service.exception;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -16,6 +16,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException e) {
         return error(HttpStatus.NOT_FOUND, e.getMessage(), null);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> handleBusiness(IllegalArgumentException e) {
+        return error(HttpStatus.BAD_REQUEST, e.getMessage(), null);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

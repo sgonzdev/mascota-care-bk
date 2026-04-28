@@ -1,12 +1,22 @@
 spring:
   application:
     name: api-gateway
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:55432/auth_db}
+    username: ${SPRING_DATASOURCE_USERNAME:mascotacare}
+    password: ${SPRING_DATASOURCE_PASSWORD:mascotacare_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
   cloud:
     gateway:
       discovery:
         locator:
-          enabled: true
-          lower-case-service-id: true
+          enabled: false
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
       globalcors:
@@ -23,9 +33,12 @@ spring:
         - id: symptom-service
           uri: lb://symptom-service
           predicates: [Path=/api/symptoms/**]
-        - id: rules-engine
+        - id: rules-engine-rules
           uri: lb://rules-engine
-          predicates: [Path=/api/rules/**, Path=/api/triage/**]
+          predicates: [Path=/api/rules/**]
+        - id: rules-engine-triage
+          uri: lb://rules-engine
+          predicates: [Path=/api/triage/**]
         - id: guide-service
           uri: lb://guide-service
           predicates: [Path=/api/guides/**]
@@ -47,8 +60,17 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_CLIENT_SERVICEURL_DEFAULTZONE:http://localhost:8761/eureka}
 
+jwt:
+  secret: ${JWT_SECRET:cambia-esto-en-produccion-min-32-chars-12345}
+  access-ttl-seconds: 900
+  refresh-ttl-days: 7
+
 management:
   endpoints:
     web:
       exposure:
         include: health,info,gateway
+
+logging:
+  level:
+    com.mascotacare.api.gateway: INFO

@@ -2,6 +2,8 @@ package com.mascotacare.symptom.service.controller;
 
 import com.mascotacare.symptom.service.dto.SymptomRequest;
 import com.mascotacare.symptom.service.dto.SymptomResponse;
+import com.mascotacare.symptom.service.dto.TriageFlowRequest;
+import com.mascotacare.symptom.service.dto.TriageFlowResponse;
 import com.mascotacare.symptom.service.service.SymptomService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,12 @@ public class SymptomController {
     public ResponseEntity<SymptomResponse> register(@Valid @RequestBody SymptomRequest req) {
         SymptomResponse created = service.register(req);
         return ResponseEntity.created(URI.create("/api/symptoms/" + created.id())).body(created);
+    }
+
+    /** Flujo orquestado UC2+UC3: registra el síntoma y devuelve el triage en una sola llamada. */
+    @PostMapping("/triage")
+    public TriageFlowResponse triage(@Valid @RequestBody TriageFlowRequest req) {
+        return service.registerAndEvaluate(req);
     }
 
     @GetMapping("/by-pet/{idMascota}")

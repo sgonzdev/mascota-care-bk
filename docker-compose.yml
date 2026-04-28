@@ -23,6 +23,15 @@ x-postgres-base: &postgres-base
 
 services:
   # ─────────────── Bases de datos (1 por microservicio del doc §4.4) ───────────────
+  auth-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: auth_db
+    volumes: [auth-data:/var/lib/postgresql/data]
+    ports: ["55432:5432"]
+
   pet-db:
     <<: *postgres-base
     environment:
@@ -108,7 +117,15 @@ services:
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: api-gateway } }
     container_name: mc-gateway
     ports: ["8080:8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://auth-db:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
     depends_on:
+      auth-db: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
 
   # ─────────────── Microservicios de negocio ───────────────
@@ -235,6 +252,7 @@ networks:
     driver: bridge
 
 volumes:
+  auth-data:
   pet-data:
   symptom-data:
   rules-data:

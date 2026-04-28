@@ -1,6 +1,7 @@
 package com.mascotacare.followup.service.service;
 
 import com.mascotacare.followup.service.entity.Followup;
+import com.mascotacare.followup.service.security.UserContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.stereotype.Component;
@@ -31,8 +32,11 @@ public class AlertTrigger {
                 log.warn("notification-service no registrado en Eureka, alerta no enviada");
                 return false;
             }
+            UserContext.User u = UserContext.get();
             http.post()
                     .uri(baseUrl + "/api/notifications/send")
+                    .header("X-User-Id", u == null ? "system" : u.id())
+                    .header("X-User-Role", u == null ? "SYSTEM" : u.role())
                     .body(Map.of(
                             "destinatario", f.getIdMascota().toString(),
                             "canal", "EMAIL",
