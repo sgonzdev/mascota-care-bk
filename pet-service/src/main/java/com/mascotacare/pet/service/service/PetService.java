@@ -20,8 +20,10 @@ public class PetService {
 
     private final PetRepository repository;
     private final PetMapper mapper;
+    private final PetValidator validator;
 
     public PetResponse create(PetRequest req) {
+        validator.validate(req);
         Pet entity = mapper.toEntity(req);
         return mapper.toResponse(repository.save(entity));
     }
@@ -42,6 +44,7 @@ public class PetService {
     }
 
     public PetResponse update(UUID id, PetRequest req) {
+        validator.validate(req);
         Pet entity = getOrThrow(id);
         mapper.update(entity, req);
         return mapper.toResponse(entity);

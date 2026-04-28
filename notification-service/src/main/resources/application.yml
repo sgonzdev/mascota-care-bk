@@ -37,3 +37,12 @@ notification:
     api-key: ${SENDGRID_API_KEY:}
   twilio:
     sid: ${TWILIO_SID:}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+  api-docs:
+    path: /v3/api-docs
+  packages-to-scan: com.mascotacare.notification.service.controller
+  paths-to-match: /api/**

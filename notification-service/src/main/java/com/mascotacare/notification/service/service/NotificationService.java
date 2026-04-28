@@ -23,9 +23,9 @@ import java.util.stream.Collectors;
 @Transactional
 public class NotificationService {
 
-    private static final int MAX_RETRIES = 3;
     private final NotificationRepository repository;
     private final List<NotificationProvider> providers;
+    private final RetryHandler retryHandler;
 
     public NotificationResponse send(NotificationRequest req) {
         Notification entity = repository.save(Notification.builder()
@@ -47,24 +47,17 @@ public class NotificationService {
     }
 
     private void attemptSend(Notification entity, NotificationProvider provider) {
-        for (int i = 0; i < MAX_RETRIES; i++) {
-            entity.setIntentos(entity.getIntentos() + 1);
-            try {
-                provider.send(entity.getDestinatario(), entity.getAsunto(), entity.getContenido());
-                entity.setEstado(Notification.Estado.ENVIADA);
-                entity.setEnviadaEn(OffsetDateTime.now());
-                entity.setErrorMessage(null);
-                repository.save(entity);
-                return;
-            } catch (Exception e) {
-                log.warn("intento {} falló para notif {}: {}", entity.getIntentos(), entity.getId(), e.getMessage());
-                entity.setErrorMessage(e.getMessage());
-                if (i < MAX_RETRIES - 1) {
-                    try { Thread.sleep(200L * (i + 1)); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-                }
-            }
+        var result = retryHandler.execute(() ->
+                provider.send(entity.getDestinatario(), entity.getAsunto(), entity.getContenido()));
+        entity.setIntentos(result.intentos());
+        if (result.ok()) {
+            entity.setEstado(Notification.Estado.ENVIADA);
+            entity.setEnviadaEn(OffsetDateTime.now());
+            entity.setErrorMessage(null);
+        } else {
+            entity.setEstado(Notification.Estado.FALLIDA);
+            entity.setErrorMessage(result.errorMessage());
         }
-        entity.setEstado(Notification.Estado.FALLIDA);
         repository.save(entity);
     }
 

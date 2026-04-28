@@ -1,5 +1,8 @@
 # MascotaCare — Backend
 
+> **Autores:** Santiago Gonzalez Becerra · Jhon Esteban Pinto
+> **Año:** 2026
+
 Implementación de los **7 microservicios** + API Gateway + Eureka definidos en la propuesta arquitectónica del proyecto.
 
 ## Stack
