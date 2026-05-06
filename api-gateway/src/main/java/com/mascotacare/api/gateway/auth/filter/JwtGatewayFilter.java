@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
@@ -34,7 +35,8 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     /** Estos sí matchean por prefijo. */
     private static final List<String> PUBLIC_PREFIXES = List.of(
             "/actuator", "/eureka",
-            "/swagger-ui", "/v3/api-docs", "/swagger-resources", "/webjars"
+            "/swagger-ui", "/v3/api-docs", "/swagger-resources", "/webjars",
+            "/docs"
     );
 
     private final JwtService jwtService;
@@ -43,6 +45,11 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest req = exchange.getRequest();
         String path = req.getURI().getPath();
+
+        // CORS preflights deben pasar sin token; el handler de CORS añade los headers.
+        if (HttpMethod.OPTIONS.equals(req.getMethod())) {
+            return chain.filter(stripUserHeaders(exchange));
+        }
 
         if (isPublic(path)) {
             return chain.filter(stripUserHeaders(exchange));

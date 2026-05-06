@@ -35,5 +35,5 @@ springdoc:
     operationsSorter: method
   api-docs:
     path: /v3/api-docs
-  packages-to-scan: com.mascotacare.symptom.service.controller
+  packages-to-scan: com.mascotacare.symptom.service.controller, com.mascotacare.symptom.service.config
   paths-to-match: /api/**

@@ -133,7 +133,7 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: pet-service } }
     container_name: mc-pet
-    ports: ["8081:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -148,7 +148,7 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: symptom-service } }
     container_name: mc-symptom
-    ports: ["8082:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -163,7 +163,7 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: rules-engine } }
     container_name: mc-rules
-    ports: ["8083:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -180,13 +180,14 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: guide-service } }
     container_name: mc-guide
-    ports: ["8084:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_DATASOURCE_URL: jdbc:postgresql://guide-db:5432/guide_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      AI_API_KEY: ${MISTRAL_API_KEY:-}
     depends_on:
       guide-db: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
@@ -195,7 +196,7 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: followup-service } }
     container_name: mc-followup
-    ports: ["8085:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -210,7 +211,7 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: metrics-service } }
     container_name: mc-metrics
-    ports: ["8086:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
@@ -223,13 +224,14 @@ services:
     <<: *spring-base
     build: { context: ., dockerfile: Dockerfile, args: { SERVICE: notification-service } }
     container_name: mc-notification
-    ports: ["8087:8080"]
+    expose: ["8080"]
     environment:
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
       SPRING_DATASOURCE_URL: jdbc:postgresql://notification-db:5432/notification_db
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
     depends_on:
       notification-db: { condition: service_healthy }
       eureka-server: { condition: service_healthy }

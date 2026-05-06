@@ -38,11 +38,16 @@ notification:
   twilio:
     sid: ${TWILIO_SID:}
 
+# Google Maps Platform — Places API (New). Vacío = solo OpenStreetMap como fallback.
+google:
+  maps:
+    api-key: ${GOOGLE_MAPS_API_KEY:}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
   api-docs:
     path: /v3/api-docs
-  packages-to-scan: com.mascotacare.notification.service.controller
+  packages-to-scan: com.mascotacare.notification.service.controller, com.mascotacare.notification.service.clinics.controller, com.mascotacare.notification.service.config
   paths-to-match: /api/**

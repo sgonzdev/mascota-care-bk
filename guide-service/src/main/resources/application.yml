@@ -29,11 +29,15 @@ management:
       exposure:
         include: health,info
 
+ai:
+  api:
+    key: ${AI_API_KEY:}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
     operationsSorter: method
   api-docs:
     path: /v3/api-docs
-  packages-to-scan: com.mascotacare.guide.service.controller
+  packages-to-scan: com.mascotacare.guide.service.controller, com.mascotacare.guide.service.config
   paths-to-match: /api/**

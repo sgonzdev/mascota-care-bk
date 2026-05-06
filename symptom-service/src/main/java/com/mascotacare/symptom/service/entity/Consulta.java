@@ -1,0 +1,66 @@
+package com.mascotacare.symptom.service.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+/**
+ * Agregación persistida por cada triage UC2+UC3.
+ * Expuesta al frontend mediante /api/consultations.
+ */
+@Entity
+@Table(name = "consultas")
+@Getter @Setter
+@NoArgsConstructor @AllArgsConstructor @Builder
+public class Consulta {
+
+    @Id @GeneratedValue
+    private UUID id;
+
+    @Column(name = "id_mascota", nullable = false)
+    private UUID idMascota;
+
+    @Column(name = "id_usuario", nullable = false)
+    private UUID idUsuario;
+
+    @CreationTimestamp
+    @Column(name = "fecha_hora", nullable = false, updatable = false)
+    private OffsetDateTime fechaHora;
+
+    @Column(name = "descripcion_sintomas", nullable = false, columnDefinition = "TEXT")
+    private String descripcionSintomas;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel_urgencia", nullable = false, length = 10)
+    private NivelUrgencia nivelUrgencia;
+
+    @Column(name = "respuesta_generada", nullable = false, columnDefinition = "TEXT")
+    private String respuestaGenerada;
+
+    @Column(name = "id_regla_aplicada")
+    private UUID idReglaAplicada;
+
+    @Column(name = "canal", nullable = false, length = 10)
+    @Builder.Default
+    private String canal = "web";
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado", nullable = false, length = 15)
+    @Builder.Default
+    private EstadoConsulta estado = EstadoConsulta.activa;
+
+    @Column(name = "notas_internas", nullable = false, columnDefinition = "TEXT")
+    @Builder.Default
+    private String notasInternas = "";
+
+    @UpdateTimestamp
+    @Column(name = "actualizada_en", nullable = false)
+    private OffsetDateTime actualizadaEn;
+
+    public enum NivelUrgencia { ALTA, MEDIA, BAJA }
+    public enum EstadoConsulta { activa, resuelta, archivada, pendiente }
+}

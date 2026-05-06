@@ -7,6 +7,7 @@ import com.mascotacare.symptom.service.dto.TriageFlowResponse;
 import com.mascotacare.symptom.service.entity.Symptom;
 import com.mascotacare.symptom.service.mapper.SymptomMapper;
 import com.mascotacare.symptom.service.repository.SymptomRepository;
+import com.mascotacare.symptom.service.security.UserContext;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ public class SymptomService {
     private final SymptomNormalizer normalizer;
     private final SymptomMapper mapper;
     private final RulesEngineClient rulesClient;
+    private final ConsultaService consultaService;
 
     public SymptomResponse register(SymptomRequest req) {
         List<String> codes = normalizer.normalize(req.descripcionLibre());
@@ -37,7 +39,7 @@ public class SymptomService {
         return mapper.toResponse(repository.save(entity));
     }
 
-    /** Flujo orquestado UC2+UC3: registra el síntoma y dispara triage automáticamente. */
+    /** Flujo orquestado UC2+UC3: registra el síntoma, dispara triage y persiste Consulta. */
     public TriageFlowResponse registerAndEvaluate(TriageFlowRequest req) {
         List<String> codes = normalizer.normalize(req.descripcionLibre());
         Symptom saved = repository.save(Symptom.builder()
@@ -47,13 +49,25 @@ public class SymptomService {
                 .severidadPercibida(req.severidadPercibida())
                 .build());
         Map<String, Object> triage = rulesClient.evaluate(req.especie(), req.edadMeses(), codes);
+        String nivelUrgencia = String.valueOf(triage.get("nivelUrgencia"));
+        String accionRecomendada = String.valueOf(triage.get("accionRecomendada"));
+        UUID idReglaAplicada = triage.get("idReglaAplicada") == null ? null
+                : UUID.fromString(triage.get("idReglaAplicada").toString());
+        UUID idUsuario = currentUserUuid();
+        if (idUsuario != null) {
+            consultaService.persistFromTriage(
+                    req.idMascota(), idUsuario, req.descripcionLibre(),
+                    nivelUrgencia, accionRecomendada, idReglaAplicada);
+        }
         return new TriageFlowResponse(
-                saved.getId(),
-                String.valueOf(triage.get("nivelUrgencia")),
-                String.valueOf(triage.get("accionRecomendada")),
-                triage.get("idReglaAplicada") == null ? null
-                        : UUID.fromString(triage.get("idReglaAplicada").toString()),
+                saved.getId(), nivelUrgencia, accionRecomendada, idReglaAplicada,
                 mapper.toResponse(saved));
+    }
+
+    private UUID currentUserUuid() {
+        UserContext.User u = UserContext.get();
+        if (u == null || u.id() == null || u.id().isBlank()) return null;
+        try { return UUID.fromString(u.id()); } catch (IllegalArgumentException e) { return null; }
     }
 
     @Transactional(readOnly = true)

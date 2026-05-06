@@ -27,12 +27,45 @@ spring:
             allowedHeaders: "*"
             allowCredentials: true
       routes:
+        # ─── Swagger/OpenAPI (públicos, sin token) ────────────────────────
+        - id: swagger-pet
+          uri: lb://pet-service
+          predicates: [Path=/docs/pets/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/pets/?(?<seg>.*)", replacement: "/${seg}"}}]
+        - id: swagger-symptom
+          uri: lb://symptom-service
+          predicates: [Path=/docs/symptoms/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/symptoms/?(?<seg>.*)", replacement: "/${seg}"}}]
+        - id: swagger-rules
+          uri: lb://rules-engine
+          predicates: [Path=/docs/rules/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/rules/?(?<seg>.*)", replacement: "/${seg}"}}]
+        - id: swagger-guide
+          uri: lb://guide-service
+          predicates: [Path=/docs/guides/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/guides/?(?<seg>.*)", replacement: "/${seg}"}}]
+        - id: swagger-followup
+          uri: lb://followup-service
+          predicates: [Path=/docs/followups/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/followups/?(?<seg>.*)", replacement: "/${seg}"}}]
+        - id: swagger-metrics
+          uri: lb://metrics-service
+          predicates: [Path=/docs/metrics/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/metrics/?(?<seg>.*)", replacement: "/${seg}"}}]
+        - id: swagger-notification
+          uri: lb://notification-service
+          predicates: [Path=/docs/notifications/**]
+          filters: [{name: RewritePath, args: {regexp: "/docs/notifications/?(?<seg>.*)", replacement: "/${seg}"}}]
+        # ─── APIs de negocio ──────────────────────────────────────────────
         - id: pet-service
           uri: lb://pet-service
           predicates: [Path=/api/pets/**]
         - id: symptom-service
           uri: lb://symptom-service
           predicates: [Path=/api/symptoms/**]
+        - id: symptom-consultations
+          uri: lb://symptom-service
+          predicates: [Path=/api/consultations/**]
         - id: rules-engine-rules
           uri: lb://rules-engine
           predicates: [Path=/api/rules/**]
@@ -51,6 +84,9 @@ spring:
         - id: notification-service
           uri: lb://notification-service
           predicates: [Path=/api/notifications/**]
+        - id: notification-clinics
+          uri: lb://notification-service
+          predicates: [Path=/api/clinics/**]
 
 server:
   port: 8080
