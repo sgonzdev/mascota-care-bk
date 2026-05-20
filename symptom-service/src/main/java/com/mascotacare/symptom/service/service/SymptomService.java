@@ -1,5 +1,6 @@
 package com.mascotacare.symptom.service.service;
 
+import com.mascotacare.symptom.service.dto.PageResponse;
 import com.mascotacare.symptom.service.dto.SymptomRequest;
 import com.mascotacare.symptom.service.dto.SymptomResponse;
 import com.mascotacare.symptom.service.dto.TriageFlowRequest;
@@ -10,6 +11,7 @@ import com.mascotacare.symptom.service.repository.SymptomRepository;
 import com.mascotacare.symptom.service.security.UserContext;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,9 +73,10 @@ public class SymptomService {
     }
 
     @Transactional(readOnly = true)
-    public List<SymptomResponse> historyOf(UUID idMascota) {
-        return repository.findByIdMascotaOrderByFechaReporteDesc(idMascota).stream()
-                .map(mapper::toResponse).toList();
+    public PageResponse<SymptomResponse> historyOf(UUID idMascota, Pageable pageable) {
+        return PageResponse.from(
+                repository.findByIdMascotaOrderByFechaReporteDesc(idMascota, pageable)
+                        .map(mapper::toResponse));
     }
 
     @Transactional(readOnly = true)

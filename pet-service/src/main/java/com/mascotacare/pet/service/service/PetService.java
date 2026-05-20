@@ -1,5 +1,6 @@
 package com.mascotacare.pet.service.service;
 
+import com.mascotacare.pet.service.dto.PageResponse;
 import com.mascotacare.pet.service.dto.PetRequest;
 import com.mascotacare.pet.service.dto.PetResponse;
 import com.mascotacare.pet.service.entity.Pet;
@@ -7,10 +8,10 @@ import com.mascotacare.pet.service.mapper.PetMapper;
 import com.mascotacare.pet.service.repository.PetRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -29,13 +30,14 @@ public class PetService {
     }
 
     @Transactional(readOnly = true)
-    public List<PetResponse> listAll() {
-        return repository.findAll().stream().map(mapper::toResponse).toList();
+    public PageResponse<PetResponse> listAll(Pageable pageable) {
+        return PageResponse.from(repository.findAll(pageable).map(mapper::toResponse));
     }
 
     @Transactional(readOnly = true)
-    public List<PetResponse> listByUser(UUID idUsuario) {
-        return repository.findByIdUsuario(idUsuario).stream().map(mapper::toResponse).toList();
+    public PageResponse<PetResponse> listByUser(UUID idUsuario, Pageable pageable) {
+        return PageResponse.from(
+                repository.findByIdUsuario(idUsuario, pageable).map(mapper::toResponse));
     }
 
     @Transactional(readOnly = true)

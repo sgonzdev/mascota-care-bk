@@ -2,6 +2,7 @@ package com.mascotacare.followup.service.controller;
 
 import com.mascotacare.followup.service.dto.FollowupRequest;
 import com.mascotacare.followup.service.dto.FollowupResponse;
+import com.mascotacare.followup.service.dto.PageResponse;
 import com.mascotacare.followup.service.service.FollowupService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -9,11 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -40,14 +41,26 @@ public class FollowupController {
     }
 
     @GetMapping("/by-pet/{idMascota}")
-    @Operation(summary = "Historial de seguimientos de una mascota",
-            description = "Ordenados por fecha descendente.")
+    @Operation(summary = "Historial paginado de seguimientos",
+            description = "Ordenados por fecha descendente. Usa `?page=0&size=20`.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de seguimientos"),
+            @ApiResponse(responseCode = "200", description = "Página de seguimientos"),
             @ApiResponse(responseCode = "401", description = "JWT ausente")
     })
-    public List<FollowupResponse> history(@PathVariable UUID idMascota) {
-        return service.historyOf(idMascota);
+    public PageResponse<FollowupResponse> history(@PathVariable UUID idMascota, Pageable pageable) {
+        return service.historyOf(idMascota, pageable);
+    }
+
+    @GetMapping("/by-consultation/{idConsulta}")
+    @Operation(summary = "Seguimientos de una consulta",
+            description = "Devuelve todos los seguimientos asociados a una consulta, "
+                    + "ordenados por fecha descendente. Sin paginación (suelen ser pocos).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista (puede ser vacía)"),
+            @ApiResponse(responseCode = "401", description = "JWT ausente")
+    })
+    public java.util.List<FollowupResponse> byConsultation(@PathVariable UUID idConsulta) {
+        return service.byConsulta(idConsulta);
     }
 
     @GetMapping("/{id}")

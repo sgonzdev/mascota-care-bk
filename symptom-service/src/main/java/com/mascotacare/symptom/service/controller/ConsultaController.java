@@ -2,6 +2,7 @@ package com.mascotacare.symptom.service.controller;
 
 import com.mascotacare.symptom.service.dto.ConsultaPatchRequest;
 import com.mascotacare.symptom.service.dto.ConsultaResponse;
+import com.mascotacare.symptom.service.dto.PageResponse;
 import com.mascotacare.symptom.service.service.ConsultaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,10 +11,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -33,12 +34,13 @@ public class ConsultaController {
             @ApiResponse(responseCode = "200", description = "Lista (puede ser vacía)"),
             @ApiResponse(responseCode = "401", description = "JWT ausente")
     })
-    public List<ConsultaResponse> list(
+    public PageResponse<ConsultaResponse> list(
             @Parameter(description = "Filtrar por dueño (opcional)")
             @RequestParam(required = false) UUID idUsuario,
             @Parameter(description = "Estado: activa|resuelta|archivada|pendiente|all", example = "all")
-            @RequestParam(required = false) String estado) {
-        return service.list(idUsuario, estado);
+            @RequestParam(required = false) String estado,
+            Pageable pageable) {
+        return service.list(idUsuario, estado, pageable);
     }
 
     @GetMapping("/{id}")

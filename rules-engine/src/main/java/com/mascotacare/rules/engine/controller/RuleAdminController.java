@@ -1,5 +1,6 @@
 package com.mascotacare.rules.engine.controller;
 
+import com.mascotacare.rules.engine.dto.PageResponse;
 import com.mascotacare.rules.engine.dto.RuleRequest;
 import com.mascotacare.rules.engine.dto.RuleResponse;
 import com.mascotacare.rules.engine.service.RuleAdminService;
@@ -9,12 +10,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -39,10 +40,12 @@ public class RuleAdminController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar todas las reglas (activas e inactivas)",
-            description = "Devuelve el catálogo completo. El frontend admin lo usa para mostrar la tabla de gestión.")
-    @ApiResponse(responseCode = "200", description = "Lista de reglas")
-    public List<RuleResponse> list() { return service.listAll(); }
+    @Operation(summary = "Listar reglas (paginado)",
+            description = "Catálogo completo paginado. Usa `?page=0&size=20`.")
+    @ApiResponse(responseCode = "200", description = "Página de reglas")
+    public PageResponse<RuleResponse> list(Pageable pageable) {
+        return service.listAll(pageable);
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Obtener una regla por id")

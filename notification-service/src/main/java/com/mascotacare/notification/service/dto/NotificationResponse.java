@@ -15,5 +15,7 @@ public record NotificationResponse(
         Integer intentos,
         String errorMessage,
         OffsetDateTime creadaEn,
-        OffsetDateTime enviadaEn
+        OffsetDateTime enviadaEn,
+        Notification.Scope scope,
+        UUID idUsuario
 ) {}

@@ -46,6 +46,20 @@ public class Notification {
     @Column(name = "enviada_en")
     private OffsetDateTime enviadaEn;
 
+    /**
+     * Alcance de la notificación:
+     *   GLOBAL   → la ven todos los usuarios (anuncios, mantenimiento, etc).
+     *   PERSONAL → solo la ve el usuario en {@link #idUsuario} (alertas de su mascota).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    private Scope scope;
+
+    /** Solo se llena cuando scope == PERSONAL; null para GLOBAL. */
+    @Column(name = "id_usuario")
+    private UUID idUsuario;
+
     public enum Canal { PUSH, EMAIL, SMS }
     public enum Estado { PENDIENTE, ENVIADA, FALLIDA }
+    public enum Scope { GLOBAL, PERSONAL }
 }

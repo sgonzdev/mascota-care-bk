@@ -1,6 +1,7 @@
 package com.mascotacare.rules.engine.service;
 
 import com.mascotacare.rules.engine.cache.RuleCacheManager;
+import com.mascotacare.rules.engine.dto.PageResponse;
 import com.mascotacare.rules.engine.dto.RuleRequest;
 import com.mascotacare.rules.engine.dto.RuleResponse;
 import com.mascotacare.rules.engine.entity.Rule;
@@ -8,10 +9,10 @@ import com.mascotacare.rules.engine.mapper.RuleMapper;
 import com.mascotacare.rules.engine.repository.RuleRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,8 +31,8 @@ public class RuleAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<RuleResponse> listAll() {
-        return repository.findAll().stream().map(mapper::toResponse).toList();
+    public PageResponse<RuleResponse> listAll(Pageable pageable) {
+        return PageResponse.from(repository.findAll(pageable).map(mapper::toResponse));
     }
 
     @Transactional(readOnly = true)

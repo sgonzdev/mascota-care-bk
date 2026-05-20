@@ -1,4 +1,4 @@
-package com.mascotacare.pet.service.exception;
+package com.mascotacare.rules.engine.service.exception;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.ConstraintViolationException;

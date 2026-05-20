@@ -2,14 +2,15 @@ package com.mascotacare.followup.service.service;
 
 import com.mascotacare.followup.service.dto.FollowupRequest;
 import com.mascotacare.followup.service.dto.FollowupResponse;
+import com.mascotacare.followup.service.dto.PageResponse;
 import com.mascotacare.followup.service.entity.Followup;
 import com.mascotacare.followup.service.repository.FollowupRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -40,9 +41,16 @@ public class FollowupService {
     }
 
     @Transactional(readOnly = true)
-    public List<FollowupResponse> historyOf(UUID idMascota) {
-        return repository.findByIdMascotaOrderByFechaSeguimientoDesc(idMascota).stream()
-                .map(this::toResponse).toList();
+    public PageResponse<FollowupResponse> historyOf(UUID idMascota, Pageable pageable) {
+        return PageResponse.from(
+                repository.findByIdMascotaOrderByFechaSeguimientoDesc(idMascota, pageable)
+                        .map(this::toResponse));
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<FollowupResponse> byConsulta(UUID idConsulta) {
+        return repository.findByIdConsultaOrderByFechaSeguimientoDesc(idConsulta)
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)

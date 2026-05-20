@@ -15,7 +15,10 @@ import java.util.List;
 @Order(1)
 public class UserContextFilter extends OncePerRequestFilter {
 
-    private static final List<String> PUBLIC_PATHS = List.of("/actuator", "/swagger-ui", "/v3/api-docs", "/swagger-resources", "/webjars");
+    private static final List<String> PUBLIC_PATHS = List.of(
+            "/actuator", "/swagger-ui", "/v3/api-docs", "/swagger-resources", "/webjars",
+            "/ws"  // WebSocket handshake — el gateway ya validó JWT; el handler lee X-User-Id directo.
+    );
 
     @Override
     protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)

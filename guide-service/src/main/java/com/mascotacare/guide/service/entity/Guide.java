@@ -34,6 +34,10 @@ public class Guide {
     @Column(name = "fecha_generacion", updatable = false)
     private OffsetDateTime fechaGeneracion;
 
-    public enum TipoGuia { CUIDADO, ALIMENTACION, ALARMA }
+    public enum TipoGuia {
+        CUIDADO, ALIMENTACION, ALARMA,
+        HIGIENE, EJERCICIO, VACUNACION, COMPORTAMIENTO,
+        CACHORRO, ADULTO_MAYOR, VIAJE, PRIMEROS_AUXILIOS
+    }
     public enum Fuente { TEMPLATE, AI }
 }

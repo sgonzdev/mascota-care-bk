@@ -1,5 +1,6 @@
 package com.mascotacare.pet.service.controller;
 
+import com.mascotacare.pet.service.dto.PageResponse;
 import com.mascotacare.pet.service.dto.PetRequest;
 import com.mascotacare.pet.service.dto.PetResponse;
 import com.mascotacare.pet.service.service.PetService;
@@ -10,12 +11,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -42,13 +43,17 @@ public class PetController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar mascotas",
-            description = "Sin parámetros devuelve todas. Con `idUsuario` filtra por dueño.")
-    @ApiResponse(responseCode = "200", description = "Lista (puede ser vacía)")
-    public List<PetResponse> list(
+    @Operation(summary = "Listar mascotas (paginado)",
+            description = "Sin parámetros devuelve todas. Con `idUsuario` filtra por dueño. "
+                    + "Usa `?page=0&size=20` para paginar.")
+    @ApiResponse(responseCode = "200", description = "Página de mascotas")
+    public PageResponse<PetResponse> list(
             @Parameter(description = "Filtrar por id del dueño (opcional)")
-            @RequestParam(required = false) UUID idUsuario) {
-        return idUsuario == null ? service.listAll() : service.listByUser(idUsuario);
+            @RequestParam(required = false) UUID idUsuario,
+            Pageable pageable) {
+        return idUsuario == null
+                ? service.listAll(pageable)
+                : service.listByUser(idUsuario, pageable);
     }
 
     @GetMapping("/{id}")

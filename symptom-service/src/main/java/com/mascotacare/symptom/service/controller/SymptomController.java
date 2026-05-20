@@ -1,5 +1,6 @@
 package com.mascotacare.symptom.service.controller;
 
+import com.mascotacare.symptom.service.dto.PageResponse;
 import com.mascotacare.symptom.service.dto.SymptomRequest;
 import com.mascotacare.symptom.service.dto.SymptomResponse;
 import com.mascotacare.symptom.service.dto.TriageFlowRequest;
@@ -11,11 +12,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -54,9 +55,10 @@ public class SymptomController {
     }
 
     @GetMapping("/by-pet/{idMascota}")
-    @Operation(summary = "Historial de síntomas de una mascota (más recientes primero)")
-    public List<SymptomResponse> history(@PathVariable UUID idMascota) {
-        return service.historyOf(idMascota);
+    @Operation(summary = "Historial paginado de síntomas (más recientes primero)",
+            description = "Usa `?page=0&size=20` para paginar.")
+    public PageResponse<SymptomResponse> history(@PathVariable UUID idMascota, Pageable pageable) {
+        return service.historyOf(idMascota, pageable);
     }
 
     @GetMapping("/{id}")

@@ -2,6 +2,7 @@ package com.mascotacare.guide.service.controller;
 
 import com.mascotacare.guide.service.dto.GuideRequest;
 import com.mascotacare.guide.service.dto.GuideResponse;
+import com.mascotacare.guide.service.dto.PageResponse;
 import com.mascotacare.guide.service.service.GuideService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -9,11 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -41,14 +42,14 @@ public class GuideController {
     }
 
     @GetMapping("/by-pet/{idMascota}")
-    @Operation(summary = "Historial de guías de una mascota",
-            description = "Devuelve todas las guías generadas para esa mascota, más recientes primero.")
+    @Operation(summary = "Historial paginado de guías",
+            description = "Más recientes primero. Usa `?page=0&size=20`.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Lista de guías (puede ser vacía)"),
+            @ApiResponse(responseCode = "200", description = "Página de guías"),
             @ApiResponse(responseCode = "401", description = "JWT ausente")
     })
-    public List<GuideResponse> history(@PathVariable UUID idMascota) {
-        return service.historyOf(idMascota);
+    public PageResponse<GuideResponse> history(@PathVariable UUID idMascota, Pageable pageable) {
+        return service.historyOf(idMascota, pageable);
     }
 
     @GetMapping("/{id}")

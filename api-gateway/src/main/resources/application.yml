@@ -87,6 +87,9 @@ spring:
         - id: notification-clinics
           uri: lb://notification-service
           predicates: [Path=/api/clinics/**]
+        - id: notification-ws
+          uri: lb:ws://notification-service
+          predicates: [Path=/ws/**]
 
 server:
   port: 8080

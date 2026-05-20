@@ -21,8 +21,10 @@ import java.util.Map;
 public class AIContentProvider {
 
     private static final String MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions";
-    private static final String MODEL = "mistral-large-latest";
-    private static final Duration TIMEOUT = Duration.ofSeconds(20);
+    // mistral-small-latest: ~2-3s, calidad suficiente para guías informativas.
+    // mistral-large era overkill (10-25s) sin ganancia real para este caso.
+    private static final String MODEL = "mistral-small-latest";
+    private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
     private final WebClient webClient;
     private final String apiKey;
@@ -49,7 +51,7 @@ public class AIContentProvider {
                                     Map.of("role", "system", "content", systemPrompt()),
                                     Map.of("role", "user", "content", prompt)),
                             "temperature", 0.4,
-                            "max_tokens", 800))
+                            "max_tokens", 2000))
                     .retrieve()
                     .bodyToMono(Map.class)
                     .timeout(TIMEOUT)
@@ -63,10 +65,14 @@ public class AIContentProvider {
 
     private String systemPrompt() {
         return """
-                Eres un asistente veterinario que enriquece guías de cuidado para dueños de mascotas.
-                Devuelve SIEMPRE HTML limpio y conciso (h2, h3, ul, p), en español.
-                Adapta el contenido a la especie, raza y edad. Sé práctico, no diagnostiques.
-                Recuerda al final que ante dudas o emergencias, consulten al veterinario.
+                Eres un asistente veterinario que redacta guías de cuidado detalladas
+                para dueños de mascotas. Devuelve EXCLUSIVAMENTE HTML semántico
+                (h2, h3, ul, ol, p, strong) en español, sin envoltorios markdown,
+                sin bloques ```html ni ``` de ningún tipo, sin texto antes ni después.
+                Estructura cada guía con varias secciones (al menos 4), explicaciones
+                prácticas y ejemplos concretos adaptados a la especie, raza y edad
+                indicadas. Evita diagnósticos. Cierra recordando que ante dudas o
+                emergencias el dueño debe consultar al veterinario.
                 """;
     }
 
@@ -74,11 +80,15 @@ public class AIContentProvider {
         return """
                 Mascota: %s, raza %s, %d meses de edad.
                 Tipo de guía: %s.
-                Plantilla base actual:
+
+                Plantilla base (úsala como punto de partida, expándela):
                 %s
 
-                Personaliza y enriquece la plantilla anterior con consejos específicos
-                para esta mascota. Mantén el formato HTML.
+                Genera una guía completa y útil, con al menos 4 secciones (h2/h3),
+                listas con varios ítems prácticos y explicaciones claras. Personaliza
+                cada consejo para esta mascota específica considerando especie, raza,
+                edad y tipo de guía solicitado. Devuelve sólo HTML, sin envoltorio
+                <html> ni <body>.
                 """.formatted(req.especie(), req.raza(), req.edadMeses(), req.tipo(), baseHtml);
     }
 

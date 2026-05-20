@@ -2,6 +2,7 @@ package com.mascotacare.notification.service.clinics.controller;
 
 import com.mascotacare.notification.service.clinics.dto.ClinicDto;
 import com.mascotacare.notification.service.clinics.service.ClinicsService;
+import com.mascotacare.notification.service.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -43,7 +44,7 @@ public class ClinicsController {
             @ApiResponse(responseCode = "400", description = "Parámetros inválidos (lat/lng fuera de rango)"),
             @ApiResponse(responseCode = "401", description = "Token JWT ausente o inválido")
     })
-    public List<ClinicDto> nearby(
+    public PageResponse<ClinicDto> nearby(
             @Parameter(description = "Latitud de origen (-90 a 90)", example = "40.4168", required = true)
             @RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") double lat,
             @Parameter(description = "Longitud de origen (-180 a 180)", example = "-3.7038", required = true)
@@ -52,6 +53,8 @@ public class ClinicsController {
             @RequestParam(defaultValue = "5000") @Min(100) @Max(50000) int radius,
             @Parameter(description = "Número máximo de resultados (1-20)", example = "10")
             @RequestParam(defaultValue = "10") @Min(1) @Max(20) int limit) {
-        return service.findNearby(lat, lng, radius, limit);
+        List<ClinicDto> content = service.findNearby(lat, lng, radius, limit);
+        // Wrappeo manual en PageResponse: una sola página, no hay paginación real.
+        return new PageResponse<>(content, 0, limit, content.size(), 1, true, true);
     }
 }

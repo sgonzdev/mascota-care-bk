@@ -55,13 +55,13 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             return chain.filter(stripUserHeaders(exchange));
         }
 
-        String auth = req.getHeaders().getFirst("Authorization");
-        if (auth == null || !auth.startsWith("Bearer ")) {
+        String token = extractToken(req, path);
+        if (token == null) {
             return reject(exchange, "Token ausente");
         }
 
         try {
-            Claims claims = jwtService.parse(auth.substring(7));
+            Claims claims = jwtService.parse(token);
             ServerHttpRequest mutated = req.mutate()
                     .header("X-User-Id", claims.getSubject())
                     .header("X-User-Email", String.valueOf(claims.get("email", String.class)))
@@ -73,6 +73,21 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             log.debug("JWT inválido: {}", e.getMessage());
             return reject(exchange, "Token inválido o expirado");
         }
+    }
+
+    /**
+     * Para HTTP normal, lee `Authorization: Bearer …`. Para WebSocket handshake
+     * (path /ws/**) el navegador no permite headers custom, así que aceptamos
+     * el JWT como query param `?token=…`.
+     */
+    private String extractToken(ServerHttpRequest req, String path) {
+        if (path.startsWith("/ws/") || path.equals("/ws")) {
+            String q = req.getQueryParams().getFirst("token");
+            if (q != null && !q.isBlank()) return q;
+        }
+        String auth = req.getHeaders().getFirst("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) return auth.substring(7);
+        return null;
     }
 
     private boolean isPublic(String path) {

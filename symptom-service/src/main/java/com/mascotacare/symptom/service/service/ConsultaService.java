@@ -2,16 +2,18 @@ package com.mascotacare.symptom.service.service;
 
 import com.mascotacare.symptom.service.dto.ConsultaPatchRequest;
 import com.mascotacare.symptom.service.dto.ConsultaResponse;
+import com.mascotacare.symptom.service.dto.PageResponse;
 import com.mascotacare.symptom.service.entity.Consulta;
 import com.mascotacare.symptom.service.entity.Consulta.EstadoConsulta;
 import com.mascotacare.symptom.service.entity.Consulta.NivelUrgencia;
 import com.mascotacare.symptom.service.repository.ConsultaRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -48,19 +50,19 @@ public class ConsultaService {
     }
 
     @Transactional(readOnly = true)
-    public List<ConsultaResponse> list(UUID idUsuario, String estadoFilter) {
+    public PageResponse<ConsultaResponse> list(UUID idUsuario, String estadoFilter, Pageable pageable) {
         EstadoConsulta estado = parseEstado(estadoFilter);
-        List<Consulta> rows;
+        Page<Consulta> rows;
         if (idUsuario != null && estado != null) {
-            rows = repository.findByIdUsuarioAndEstadoOrderByFechaHoraDesc(idUsuario, estado);
+            rows = repository.findByIdUsuarioAndEstadoOrderByFechaHoraDesc(idUsuario, estado, pageable);
         } else if (idUsuario != null) {
-            rows = repository.findByIdUsuarioOrderByFechaHoraDesc(idUsuario);
+            rows = repository.findByIdUsuarioOrderByFechaHoraDesc(idUsuario, pageable);
         } else if (estado != null) {
-            rows = repository.findByEstadoOrderByFechaHoraDesc(estado);
+            rows = repository.findByEstadoOrderByFechaHoraDesc(estado, pageable);
         } else {
-            rows = repository.findAllByOrderByFechaHoraDesc();
+            rows = repository.findAllByOrderByFechaHoraDesc(pageable);
         }
-        return rows.stream().map(ConsultaResponse::from).toList();
+        return PageResponse.from(rows.map(ConsultaResponse::from));
     }
 
     @Transactional(readOnly = true)

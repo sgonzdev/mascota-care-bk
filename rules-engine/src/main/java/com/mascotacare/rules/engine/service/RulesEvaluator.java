@@ -7,17 +7,31 @@ import com.mascotacare.rules.engine.entity.Rule;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * RulesEvaluator (C4 Tabla 4): carga reglas desde cache,
  * filtra por especie + edad, busca match por keyword del código de síntoma,
- * elige la de mayor prioridad (menor número) y devuelve el veredicto.
+ * y aplica la regla "worst case wins" propia del triage médico/veterinario:
+ *
+ *   1. Si matchean varias reglas, gana la de MAYOR nivel de urgencia
+ *      (ALTA > MEDIA > BAJA). Subestimar un síntoma grave por la presencia
+ *      simultánea de uno leve es un riesgo clínico real.
+ *   2. Dentro del mismo nivel, desempata por `prioridad` ascendente (más
+ *      específica primero — menor número = más específica).
+ *
+ * El EvaluationResult devuelve la regla ganadora + el listado completo de
+ * `reglas disparadas` para que la UI pueda mostrar contexto adicional.
  */
 @Service
 @RequiredArgsConstructor
 public class RulesEvaluator {
+
+    private static final Comparator<Rule> WORST_CASE_FIRST = Comparator
+            .comparing((Rule r) -> severity(r.getNivelUrgenciaResultado())).reversed()
+            .thenComparingInt(Rule::getPrioridad);
 
     private final RuleCacheManager cache;
 
@@ -28,6 +42,7 @@ public class RulesEvaluator {
                 .filter(r -> req.edadMeses() >= r.getEdadMinMeses()
                         && req.edadMeses() <= r.getEdadMaxMeses())
                 .filter(r -> matches(r.getCondicionSintoma(), req.codigosSintomas()))
+                .sorted(WORST_CASE_FIRST)
                 .toList();
 
         if (aplicables.isEmpty()) {
@@ -44,6 +59,10 @@ public class RulesEvaluator {
                 winner.getAccionRecomendada(),
                 Math.min(0.6 + aplicables.size() * 0.1, 0.95),
                 all);
+    }
+
+    private static int severity(Rule.NivelUrgencia n) {
+        return switch (n) { case ALTA -> 3; case MEDIA -> 2; case BAJA -> 1; };
     }
 
     private boolean matches(String condicion, List<String> codigos) {
