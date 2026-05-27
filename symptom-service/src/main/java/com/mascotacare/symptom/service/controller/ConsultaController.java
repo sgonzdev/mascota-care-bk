@@ -39,8 +39,61 @@ public class ConsultaController {
             @RequestParam(required = false) UUID idUsuario,
             @Parameter(description = "Estado: activa|resuelta|archivada|pendiente|all", example = "all")
             @RequestParam(required = false) String estado,
+            @Parameter(description = "Urgencia: ALTA|MEDIA|BAJA|all (lo usa el rol VETERINARIO)")
+            @RequestParam(required = false) String urgencia,
             Pageable pageable) {
-        return service.list(idUsuario, estado, pageable);
+        // El VETERINARIO solo ve casos sin asignar o asignados a él (cualquier urgencia).
+        com.mascotacare.symptom.service.security.UserContext.User u =
+                com.mascotacare.symptom.service.security.UserContext.get();
+        UUID vetId = null;
+        if (u != null && "VETERINARIO".equalsIgnoreCase(u.role())) {
+            try { vetId = UUID.fromString(u.id()); } catch (Exception ignore) {}
+        }
+        return service.list(idUsuario, estado, urgencia, vetId, pageable);
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/claim")
+    @Operation(summary = "Veterinario toma el caso (RF22 — claim exclusivo)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Asignado"),
+            @ApiResponse(responseCode = "403", description = "Solo veterinarios"),
+            @ApiResponse(responseCode = "409", description = "Ya asignado a otro vet")
+    })
+    public ConsultaResponse claim(@PathVariable UUID id) {
+        UUID vet = requireVetId();
+        com.mascotacare.symptom.service.security.UserContext.User u =
+                com.mascotacare.symptom.service.security.UserContext.get();
+        try {
+            return service.claim(id, vet, u.name(), u.email());
+        } catch (IllegalStateException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, e.getMessage());
+        }
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/release")
+    @Operation(summary = "Veterinario suelta el caso (queda disponible para otros)")
+    public ConsultaResponse release(@PathVariable UUID id) {
+        UUID vet = requireVetId();
+        try {
+            return service.release(id, vet);
+        } catch (IllegalStateException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT, e.getMessage());
+        }
+    }
+
+    private UUID requireVetId() {
+        com.mascotacare.symptom.service.security.UserContext.User u =
+                com.mascotacare.symptom.service.security.UserContext.get();
+        if (u == null || !"VETERINARIO".equalsIgnoreCase(u.role())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Solo veterinarios");
+        }
+        try { return UUID.fromString(u.id()); } catch (Exception e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Sesión inválida");
+        }
     }
 
     @GetMapping("/{id}")

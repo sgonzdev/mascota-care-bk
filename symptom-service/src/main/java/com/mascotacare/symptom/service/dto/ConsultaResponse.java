@@ -17,13 +17,21 @@ public record ConsultaResponse(
         String canal,
         Consulta.EstadoConsulta estado,
         String notasInternas,
-        OffsetDateTime actualizadaEn
+        OffsetDateTime actualizadaEn,
+        UUID idVetAsignado,
+        String nombreVetAsignado,
+        String emailVetAsignado,
+        String telefonoVetAsignado,
+        OffsetDateTime asignadaEn
 ) {
     public static ConsultaResponse from(Consulta c) {
         return new ConsultaResponse(
                 c.getId(), c.getIdMascota(), c.getIdUsuario(), c.getFechaHora(),
                 c.getDescripcionSintomas(), c.getNivelUrgencia(), c.getRespuestaGenerada(),
                 c.getIdReglaAplicada(), c.getCanal(), c.getEstado(), c.getNotasInternas(),
-                c.getActualizadaEn());
+                c.getActualizadaEn(),
+                c.getIdVetAsignado(), c.getNombreVetAsignado(),
+                c.getEmailVetAsignado(), c.getTelefonoVetAsignado(),
+                c.getAsignadaEn());
     }
 }

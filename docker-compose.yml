@@ -86,6 +86,15 @@ services:
     volumes: [notification-data:/var/lib/postgresql/data]
     ports: ["55438:5432"]
 
+  attachment-db:
+    <<: *postgres-base
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: attachment_db
+    volumes: [attachment-data:/var/lib/postgresql/data]
+    ports: ["55439:5432"]
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -97,6 +106,41 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+
+  # ─────────────── Object storage (S3-compatible) ───────────────
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    container_name: mc-minio
+    networks: [mc-net]
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ROOT_USER:-mascotacare}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-mascotacare-dev}
+    volumes: [minio-data:/data]
+    ports:
+      - "9100:9000"   # S3 API (host:container) — 9100 evita choque con otro MinIO local
+      - "9101:9001"   # consola web
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Job de un único uso: crea el bucket case-attachments al arrancar.
+  minio-init:
+    image: minio/mc:latest
+    container_name: mc-minio-init
+    networks: [mc-net]
+    depends_on:
+      minio: { condition: service_healthy }
+    entrypoint: >
+      sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-mascotacare} ${MINIO_ROOT_PASSWORD:-mascotacare-dev} &&
+      mc mb -p local/case-attachments &&
+      echo 'bucket case-attachments listo'
+      "
+    restart: "no"
 
   # ─────────────── Service Discovery ───────────────
   eureka-server:
@@ -236,6 +280,26 @@ services:
       notification-db: { condition: service_healthy }
       eureka-server: { condition: service_healthy }
 
+  attachment-service:
+    <<: *spring-base
+    build: { context: ., dockerfile: Dockerfile, args: { SERVICE: attachment-service } }
+    container_name: mc-attachment
+    expose: ["8080"]
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: ${EUREKA_URL}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://attachment-db:5432/attachment_db
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT:   http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-mascotacare}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-mascotacare-dev}
+      MINIO_BUCKET:     case-attachments
+    depends_on:
+      attachment-db: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      eureka-server: { condition: service_healthy }
+
   # ─────────────── Herramientas opcionales (perfil tools) ───────────────
   pgadmin:
     profiles: [tools]
@@ -263,3 +327,5 @@ volumes:
   notification-data:
   redis-data:
   pgadmin-data:
+  minio-data:
+  attachment-data:

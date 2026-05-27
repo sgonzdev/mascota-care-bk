@@ -29,6 +29,7 @@ public class SymptomService {
     private final SymptomMapper mapper;
     private final RulesEngineClient rulesClient;
     private final ConsultaService consultaService;
+    private final MetricsClient metrics;
 
     public SymptomResponse register(SymptomRequest req) {
         List<String> codes = normalizer.normalize(req.descripcionLibre());
@@ -61,6 +62,11 @@ public class SymptomService {
                     req.idMascota(), idUsuario, req.descripcionLibre(),
                     nivelUrgencia, accionRecomendada, idReglaAplicada);
         }
+        // Métricas (fire-and-forget) — alimentan el dashboard del admin.
+        metrics.record("consulta", null, 1);
+        metrics.record("urgencia", nivelUrgencia, 1);
+        if (idReglaAplicada != null) metrics.record("regla", idReglaAplicada.toString(), 1);
+
         return new TriageFlowResponse(
                 saved.getId(), nivelUrgencia, accionRecomendada, idReglaAplicada,
                 mapper.toResponse(saved));

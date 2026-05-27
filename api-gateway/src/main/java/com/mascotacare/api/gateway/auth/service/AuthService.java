@@ -17,6 +17,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -81,6 +82,12 @@ public class AuthService {
 
     public Optional<User> findById(UUID id) {
         return users.findById(id);
+    }
+
+    /** Listado para admin: todos los usuarios o filtrados por rol. */
+    public List<User> listByRol(User.Rol rol) {
+        if (rol == null) return users.findAllByOrderByFechaRegistroDesc();
+        return users.findByRolOrderByFechaRegistroDesc(rol);
     }
 
     private IssuedTokens issueTokens(User user) {

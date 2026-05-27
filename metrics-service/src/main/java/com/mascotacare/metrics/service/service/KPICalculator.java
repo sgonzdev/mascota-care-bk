@@ -33,9 +33,10 @@ public class KPICalculator {
     public double tasaMejora(int days) {
         long total = totalConsultas(days);
         if (total == 0) return 0;
-        long mejoras = store.sumByLabelLastDays(EV_URGENCIA, days)
-                .getOrDefault("MEJORO", store.sumLastDays(EV_MEJORA, days));
-        double tasa = (mejoras * 100.0) / total;
+        // Seguimientos con estado MEJORO sobre el total de consultas del periodo.
+        // Capped a 100 % por si un mismo caso recibe varios MEJORO.
+        long mejoras = store.sumByLabelLastDays("seguimiento", days).getOrDefault("MEJORO", 0L);
+        double tasa = Math.min(100.0, (mejoras * 100.0) / total);
         return Math.round(tasa * 10) / 10.0;
     }
 

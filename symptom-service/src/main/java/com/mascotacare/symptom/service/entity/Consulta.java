@@ -61,6 +61,25 @@ public class Consulta {
     @Column(name = "actualizada_en", nullable = false)
     private OffsetDateTime actualizadaEn;
 
+    /** Veterinario que ha tomado el caso (claim exclusivo) — RF22. */
+    @Column(name = "id_vet_asignado")
+    private UUID idVetAsignado;
+
+    /** Snapshot del nombre del vet al momento del claim — evita llamadas al auth-service. */
+    @Column(name = "nombre_vet_asignado", length = 80)
+    private String nombreVetAsignado;
+
+    /** Email del vet (para que el dueño pueda contactarlo). */
+    @Column(name = "email_vet_asignado", length = 200)
+    private String emailVetAsignado;
+
+    /** Teléfono del vet (para contacto). */
+    @Column(name = "telefono_vet_asignado", length = 20)
+    private String telefonoVetAsignado;
+
+    @Column(name = "asignada_en")
+    private OffsetDateTime asignadaEn;
+
     public enum NivelUrgencia { ALTA, MEDIA, BAJA }
     public enum EstadoConsulta { activa, resuelta, archivada, pendiente }
 }

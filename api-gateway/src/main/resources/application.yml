@@ -12,6 +12,8 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  codec:
+    max-in-memory-size: 110MB  # adjuntos hasta ~100MB via /api/attachments
   cloud:
     gateway:
       discovery:
@@ -90,6 +92,9 @@ spring:
         - id: notification-ws
           uri: lb:ws://notification-service
           predicates: [Path=/ws/**]
+        - id: attachment-service
+          uri: lb://attachment-service
+          predicates: [Path=/api/attachments/**]
 
 server:
   port: 8080

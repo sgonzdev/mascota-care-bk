@@ -16,4 +16,6 @@ public interface FollowupRepository extends JpaRepository<Followup, UUID> {
     List<Followup> findByIdConsultaOrderByFechaSeguimientoDesc(UUID idConsulta);
     List<Followup> findByEstadoAndAlertaEnviadaFalseAndFechaSeguimientoBefore(
             Followup.Estado estado, OffsetDateTime threshold);
+    /** Para el scheduler RF27: ¿esta consulta ya tiene algún seguimiento? */
+    boolean existsByIdConsulta(UUID idConsulta);
 }

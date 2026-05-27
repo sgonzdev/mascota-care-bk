@@ -29,12 +29,16 @@ public class User {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private Rol rol;
 
     @CreationTimestamp
     @Column(name = "fecha_registro", updatable = false)
     private OffsetDateTime fechaRegistro;
 
-    public enum Rol { DUENO, ADMIN }
+    public enum Rol {
+        DUENO,        // dueño de mascota (usuario final)
+        ADMIN,        // administrador del sistema
+        VETERINARIO   // veterinario externo: recibe alertas y atiende casos derivados
+    }
 }

@@ -20,7 +20,7 @@ public class Guide {
     private UUID idMascota;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 32)
     private TipoGuia tipo;
 
     @Column(name = "contenido_html", nullable = false, columnDefinition = "TEXT")
@@ -35,9 +35,23 @@ public class Guide {
     private OffsetDateTime fechaGeneracion;
 
     public enum TipoGuia {
+        // Existentes
         CUIDADO, ALIMENTACION, ALARMA,
         HIGIENE, EJERCICIO, VACUNACION, COMPORTAMIENTO,
-        CACHORRO, ADULTO_MAYOR, VIAJE, PRIMEROS_AUXILIOS
+        CACHORRO, ADULTO_MAYOR, VIAJE, PRIMEROS_AUXILIOS,
+        // Nuevas — temas habituales en consulta veterinaria primaria
+        SOCIALIZACION,        // socialización temprana, miedos, exposición controlada
+        ADIESTRAMIENTO,       // órdenes básicas, refuerzo positivo
+        ESTERILIZACION,       // castración/esterilización: cuándo, beneficios, postoperatorio
+        REPRODUCCION,         // celo, gestación, parto, lactancia
+        PARASITOS,            // pulgas, garrapatas, gusanos: prevención y tratamiento
+        DENTAL,               // higiene dental, sarro, enfermedad periodontal
+        OBESIDAD,             // control de peso, dieta, ejercicio en sobrepeso
+        DERMATOLOGIA,         // problemas de piel, alergias, dermatitis
+        ANSIEDAD_SEPARACION,  // manejo de ansiedad por separación
+        ENRIQUECIMIENTO,      // estimulación mental, juguetes, ambiente
+        PRIMER_ANIO,          // hitos del primer año de vida
+        EMERGENCIAS_HOGAR     // qué tener en casa, kit veterinario, intoxicaciones
     }
     public enum Fuente { TEMPLATE, AI }
 }

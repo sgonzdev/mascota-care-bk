@@ -20,6 +20,7 @@ public class FollowupService {
 
     private final FollowupRepository repository;
     private final AlertTrigger alertTrigger;
+    private final MetricsClient metrics;
 
     public FollowupResponse register(FollowupRequest req) {
         Followup f = Followup.builder()
@@ -37,6 +38,9 @@ public class FollowupService {
                 repository.save(saved);
             }
         }
+        // Métricas para el dashboard: un único evento `seguimiento` con la
+        // etiqueta del estado. tasaMejora se deriva de la label MEJORO.
+        metrics.record("seguimiento", saved.getEstado().name(), 1);
         return toResponse(saved);
     }
 

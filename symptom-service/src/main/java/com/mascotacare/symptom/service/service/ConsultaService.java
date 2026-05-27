@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Service
@@ -22,6 +23,7 @@ import java.util.UUID;
 public class ConsultaService {
 
     private final ConsultaRepository repository;
+    private final NotificationClient notifications;
 
     /**
      * Persiste una consulta resultante de un triage UC2+UC3.
@@ -36,7 +38,7 @@ public class ConsultaService {
             UUID idReglaAplicada) {
         NivelUrgencia nivel = parseNivel(nivelUrgenciaStr);
         EstadoConsulta estado = nivel == NivelUrgencia.ALTA ? EstadoConsulta.pendiente : EstadoConsulta.activa;
-        return repository.save(Consulta.builder()
+        Consulta saved = repository.save(Consulta.builder()
                 .idMascota(idMascota)
                 .idUsuario(idUsuario)
                 .descripcionSintomas(descripcionSintomas)
@@ -47,13 +49,46 @@ public class ConsultaService {
                 .estado(estado)
                 .notasInternas("")
                 .build());
+
+        // RF13 — Si la urgencia es ALTA, alerta automática.
+        if (nivel == NivelUrgencia.ALTA) {
+            // 1) Notif PERSONAL al dueño para que acuda al veterinario.
+            notifications.sendPersonal(
+                    idUsuario,
+                    "⚠️ Urgencia ALTA en tu mascota",
+                    "El triage indica que la situación requiere atención veterinaria inmediata. "
+                            + respuestaGenerada);
+            // 2) Solo los veterinarios reciben el aviso del nuevo caso ALTA
+            //    (no broadcast — los dueños no deben ver casos ajenos).
+            notifications.notifyAllVets(
+                    "Nuevo caso ALTA",
+                    "Hay un caso con urgencia ALTA disponible para tomar. "
+                            + "Revisa tus casos derivados.");
+        }
+        return saved;
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<ConsultaResponse> list(UUID idUsuario, String estadoFilter, Pageable pageable) {
+    public PageResponse<ConsultaResponse> list(UUID idUsuario, String estadoFilter,
+                                                String urgenciaFilter, UUID vetId,
+                                                Pageable pageable) {
         EstadoConsulta estado = parseEstado(estadoFilter);
+        NivelUrgencia urgencia = parseUrgencia(urgenciaFilter);
         Page<Consulta> rows;
-        if (idUsuario != null && estado != null) {
+
+        // VETERINARIO (vetId presente): ve casos sin asignar O asignados a él,
+        // de cualquier urgencia, opcionalmente acotado por urgencia o estado.
+        if (vetId != null && urgencia != null) {
+            rows = repository.findByNivelUrgenciaAndVetAvailable(urgencia, vetId, pageable);
+        } else if (vetId != null && estado != null) {
+            rows = repository.findByEstadoAndVetAvailable(estado, vetId, pageable);
+        } else if (vetId != null) {
+            rows = repository.findVetAvailable(vetId, pageable);
+        } else if (urgencia != null && estado != null) {
+            rows = repository.findByNivelUrgenciaAndEstadoOrderByFechaHoraDesc(urgencia, estado, pageable);
+        } else if (urgencia != null) {
+            rows = repository.findByNivelUrgenciaOrderByFechaHoraDesc(urgencia, pageable);
+        } else if (idUsuario != null && estado != null) {
             rows = repository.findByIdUsuarioAndEstadoOrderByFechaHoraDesc(idUsuario, estado, pageable);
         } else if (idUsuario != null) {
             rows = repository.findByIdUsuarioOrderByFechaHoraDesc(idUsuario, pageable);
@@ -63,6 +98,44 @@ public class ConsultaService {
             rows = repository.findAllByOrderByFechaHoraDesc(pageable);
         }
         return PageResponse.from(rows.map(ConsultaResponse::from));
+    }
+
+    /**
+     * Claim exclusivo (RF22): el veterinario toma un caso ALTA. Si ya está
+     * asignado a otro, lanza IllegalState.
+     */
+    public ConsultaResponse claim(UUID idConsulta, UUID idVet, String nombreVet, String emailVet) {
+        Consulta c = find(idConsulta);
+        if (c.getIdVetAsignado() != null && !c.getIdVetAsignado().equals(idVet)) {
+            throw new IllegalStateException(
+                    "El caso ya está siendo atendido por otro veterinario");
+        }
+        c.setIdVetAsignado(idVet);
+        c.setNombreVetAsignado(nombreVet);
+        c.setEmailVetAsignado(emailVet);
+        c.setAsignadaEn(OffsetDateTime.now());
+        return ConsultaResponse.from(repository.save(c));
+    }
+
+    /** Soltar un caso: solo el vet asignado puede hacerlo. */
+    public ConsultaResponse release(UUID idConsulta, UUID idVet) {
+        Consulta c = find(idConsulta);
+        if (c.getIdVetAsignado() == null) return ConsultaResponse.from(c);
+        if (!c.getIdVetAsignado().equals(idVet)) {
+            throw new IllegalStateException(
+                    "Solo el veterinario asignado puede soltar el caso");
+        }
+        c.setIdVetAsignado(null);
+        c.setNombreVetAsignado(null);
+        c.setEmailVetAsignado(null);
+        c.setTelefonoVetAsignado(null);
+        c.setAsignadaEn(null);
+        return ConsultaResponse.from(repository.save(c));
+    }
+
+    private NivelUrgencia parseUrgencia(String s) {
+        if (s == null || s.isBlank() || "all".equalsIgnoreCase(s)) return null;
+        try { return NivelUrgencia.valueOf(s.toUpperCase()); } catch (Exception e) { return null; }
     }
 
     @Transactional(readOnly = true)

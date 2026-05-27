@@ -86,14 +86,58 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "JWT ausente o inválido")
     })
     public UserResponse me(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        return UserResponse.from(requireAuthenticated(authHeader));
+    }
+
+    @GetMapping("/users/{id}/contact")
+    @Operation(summary = "Datos de contacto públicos de un usuario",
+            description = "Solo devuelve nombre, email y teléfono. Pensado para que el "
+                    + "dueño pueda contactar al veterinario asignado (RF22).")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Contacto del usuario"),
+            @ApiResponse(responseCode = "404", description = "Usuario no existe"),
+            @ApiResponse(responseCode = "401", description = "JWT inválido")
+    })
+    public java.util.Map<String, String> userContact(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @org.springframework.web.bind.annotation.PathVariable UUID id) {
+        requireAuthenticated(authHeader);  // cualquier autenticado
+        User u = auth.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no existe"));
+        return java.util.Map.of(
+                "id", u.getId().toString(),
+                "nombre", u.getNombre() == null ? "" : u.getNombre(),
+                "email",  u.getEmail()  == null ? "" : u.getEmail(),
+                "telefono", u.getTelefono() == null ? "" : u.getTelefono());
+    }
+
+    @GetMapping("/users")
+    @Operation(summary = "Listar usuarios (solo admin)",
+            description = "Filtro opcional por rol (DUENO|ADMIN|VETERINARIO). Sin parámetro: todos.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de usuarios sin password"),
+            @ApiResponse(responseCode = "403", description = "Solo admin"),
+            @ApiResponse(responseCode = "401", description = "JWT inválido")
+    })
+    public java.util.List<UserResponse> listUsers(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestParam(required = false) User.Rol rol) {
+        User caller = requireAuthenticated(authHeader);
+        if (caller.getRol() != User.Rol.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo administradores");
+        }
+        return auth.listByRol(rol).stream().map(UserResponse::from).toList();
+    }
+
+    /** Valida el JWT y devuelve el User correspondiente. */
+    private User requireAuthenticated(String authHeader) {
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "No autenticado");
         }
         try {
             String userId = jwtService.parse(authHeader.substring(7)).getSubject();
-            User user = auth.findById(UUID.fromString(userId))
+            return auth.findById(UUID.fromString(userId))
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-            return UserResponse.from(user);
         } catch (JwtException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token inválido");
         }
